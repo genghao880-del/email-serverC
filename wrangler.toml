@@ -6,11 +6,10 @@ compatibility_date = "2025-11-12"
 binding = "DB"
 database_name = "MAILDB"
 
-
 [vars]
 DOMAIN = "111671.xyz"
+CACHE_API_URL = "https://cache.111671.xyz"   # 你的 VPS 缓存 API 域名
+CACHE_KEY = "你的密钥（与VPS一致）"
 
-
- 
 
 
