@@ -1,4 +1,4 @@
-name = "email-serverC"
+name = "email-serverc"
 main = "src/index.js"
 compatibility_date = "2025-11-12"
 
@@ -12,6 +12,7 @@ bucket_name = "mail-r2-bucket"
 
 [vars]
 DOMAIN = "111671.xyz"
+
 
 
 
