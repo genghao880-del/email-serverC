@@ -1,0 +1,14 @@
+name = "mailbrain-worker"
+main = "src/worker.js"
+compatibility_date = "2025-11-12"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "MAILDB"
+
+[[r2_buckets]]
+binding = "MAILR2"
+bucket_name = "mail-r2-bucket"
+
+[vars]
+DOMAIN = "111671.xyz"
