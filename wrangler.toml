@@ -1,4 +1,4 @@
-name = "email-serverc"
+name = "email"
 main = "src/index.js"
 compatibility_date = "2025-11-12"
 
@@ -12,4 +12,5 @@ DOMAIN = "111671.xyz"
 
 
  
+
 
