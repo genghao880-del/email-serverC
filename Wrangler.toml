@@ -13,4 +13,3 @@ bucket_name = "mail-r2-bucket"
 [vars]
 DOMAIN = "111671.xyz"
 
-
