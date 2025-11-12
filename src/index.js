@@ -4,10 +4,11 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const method = request.method;
-    const CACHE_URL = "https://cache.111671.xyz";
+    // 从环境变量读取（Worker Settings -> Variables）
+    const CACHE_URL = env.CACHE_BASE || "https://cache.111671.xyz";
+    const CACHE_KEY = env.CACHE_KEY || "cf-mailbrain-111671";
     const now = () => new Date().toISOString();
 
-    // 统一 JSON 响应函数
     const json = (data, status = 200) =>
       new Response(JSON.stringify(data), {
         status,
@@ -17,12 +18,10 @@ export default {
         },
       });
 
-    // 1️⃣ 健康检查
     if (path === "/health") {
       return json({ ok: true, ts: now(), worker: true });
     }
 
-    // 2️⃣ 预检请求（CORS）
     if (method === "OPTIONS") {
       return new Response(null, {
         status: 204,
@@ -34,14 +33,13 @@ export default {
       });
     }
 
-    // 3️⃣ 缓存层辅助函数
     async function cacheFetch(endpoint, payload) {
       try {
         const res = await fetch(`${CACHE_URL}${endpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-cache-key": "cf-mailbrain-111671",
+            "x-cache-key": CACHE_KEY,
           },
           body: JSON.stringify(payload),
         });
@@ -50,7 +48,6 @@ export default {
       return null;
     }
 
-    // 4️⃣ 创建 Token（管理员）
     if (path === "/api/create-token" && method === "POST") {
       const id = crypto.randomUUID();
       const body = await request.json().catch(() => ({}));
@@ -64,17 +61,14 @@ export default {
       return json({ token: id, max_uses });
     }
 
-    // 5️⃣ 检查邮箱是否存在（缓存优先）
     if (path === "/api/check_user" && method === "POST") {
       const { local_part } = await request.json().catch(() => ({}));
       if (!local_part) return json({ error: "missing local_part" }, 400);
       const email = `${local_part}@${env.DOMAIN}`;
 
-      // 优先缓存
       const cacheHit = await cacheFetch("/get", { key: email });
       if (cacheHit && cacheHit.exists) return json(cacheHit);
 
-      // 查 D1
       const row = await env.DB.prepare(
         "SELECT id,status FROM users WHERE email=?"
       )
@@ -83,13 +77,11 @@ export default {
       const exists = !!row;
       const status = row ? row.status : null;
 
-      // 写入缓存
       await cacheFetch("/set", { key: email, value: { exists, status }, ttl: 3600 });
 
       return json({ exists, status });
     }
 
-    // 6️⃣ 注册邮箱
     if (path === "/api/register" && method === "POST") {
       const ip = request.headers.get("cf-connecting-ip") || "";
       const { token, local_part, password } = await request.json().catch(() => ({}));
@@ -104,21 +96,14 @@ export default {
       )
         .bind(token)
         .first();
-      if (!tokenRow)
-        return json({ error: "invalid token" }, 403);
-      if (tokenRow.status !== "active")
-        return json({ error: "token disabled" }, 403);
-      if (tokenRow.used >= tokenRow.max_uses)
-        return json({ error: "token exhausted" }, 403);
+      if (!tokenRow) return json({ error: "invalid token" }, 403);
+      if (tokenRow.status !== "active") return json({ error: "token disabled" }, 403);
+      if (tokenRow.used >= tokenRow.max_uses) return json({ error: "token exhausted" }, 403);
 
       const email = `${local_part}@${env.DOMAIN}`;
-      const uRow = await env.DB.prepare("SELECT id FROM users WHERE email=?")
-        .bind(email)
-        .first();
-      if (uRow)
-        return json({ error: "user exists" }, 409);
+      const uRow = await env.DB.prepare("SELECT id FROM users WHERE email=?").bind(email).first();
+      if (uRow) return json({ error: "user exists" }, 409);
 
-      // 插入用户
       const uid = crypto.randomUUID();
       await env.DB.prepare(
         "INSERT INTO users (id, email, local_part, domain, token_id, status, r2_prefix, created_at) VALUES (?,?,?,?,?,?,?,?)"
@@ -126,18 +111,15 @@ export default {
         .bind(uid, email, local_part, env.DOMAIN, token, "active", `${local_part}/`, now())
         .run();
 
-      // 更新 token
       await env.DB.prepare("UPDATE tokens SET used=used+1, last_use=? WHERE id=?")
         .bind(now(), token)
         .run();
 
-      // 写缓存
       await cacheFetch("/set", { key: email, value: { exists: true, status: "active" }, ttl: 86400 });
 
       return json({ ok: true, email });
     }
 
-    // 7️⃣ 默认
     return json({ error: "Not found" }, 404);
   },
 };
