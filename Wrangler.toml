@@ -1,5 +1,5 @@
 name = "mailbrain-worker"
-main = "src/worker.js"
+main = "src/indexr.js"
 compatibility_date = "2025-11-12"
 
 [[d1_databases]]
@@ -12,3 +12,4 @@ bucket_name = "mail-r2-bucket"
 
 [vars]
 DOMAIN = "111671.xyz"
+
