@@ -6,7 +6,7 @@ export default {
     const method = request.method;
     // 从环境变量读取（Worker Settings -> Variables）
     const CACHE_URL = env.CACHE_BASE || "https://cache.111671.xyz";
-    const CACHE_KEY = env.CACHE_KEY || "cf-mailbrain-111671";
+    const CACHE_KEY = env.CACHE_KEY || "h78Rk@vps!!@#$@@@kkhKLailbrain";
     const now = () => new Date().toISOString();
 
     const json = (data, status = 200) =>
@@ -123,3 +123,4 @@ export default {
     return json({ error: "Not found" }, 404);
   },
 };
+
